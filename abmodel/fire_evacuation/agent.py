@@ -643,8 +643,7 @@ class Human(Agent):
             else:        
                 # check cooperation
                 if self.cooperativeness > self.COOPERATIVENESS_THRESHOLD and self.humantohelp == None \
-                        and (len(self.exits) > 0 
-                        or self.model.COOPERATE_WO_EXIT):
+                        and len(self.exits) > 0:
                     self.cooperate()
                         
                 # If the agent believes the alarm, attempt to plan 

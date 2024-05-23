@@ -4,6 +4,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import time
 import math
+import logging
 
 from mesa import Model
 from mesa.datacollection import DataCollector
@@ -12,13 +13,12 @@ from mesa.time import RandomActivation
 
 from .agent import Human, Wall, FireExit
 
+logger = logging.getLogger("FireEvacuation")
 
 class FireEvacuation(Model):
     
     MIN_SPEED = 0
     MAX_SPEED = 3
-
-    COOPERATE_WO_EXIT = False
     
     def __init__(
         self,
@@ -65,7 +65,6 @@ class FireEvacuation(Model):
         np.random.seed(seed)
         self.rng = np.random.default_rng(seed)
         self.MAX_SPEED = max_speed
-        self.COOPERATE_WO_EXIT = FireEvacuation.COOPERATE_WO_EXIT
         
         self.stepcounter = -1
         
@@ -185,12 +184,14 @@ class FireEvacuation(Model):
                 print("No tile empty for human placement!")
 
         self.running = True
+        logger.info("Model initialised")
 
     def step(self):
         """
         Advance the model by one step.
         """
 
+        logger.info("Running step " + str(self.schedule.steps))
         self.schedule.step()
         self.datacollector.collect(self)
 
