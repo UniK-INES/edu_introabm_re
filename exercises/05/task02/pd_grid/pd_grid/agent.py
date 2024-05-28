@@ -24,6 +24,9 @@ class PDAgent(mesa.Agent):
         else:
             self.move = self.random.choice(["C", "D"])
         self.next_move = None
+        logger.debug("Initial strategy of {0:2.0f}/{1:2.0f}".format(self.pos[0], 
+                                                                    self.pos[1]) + ": " +
+                                                                    str(self.move))
 
     @property
     def isCooroperating(self):
