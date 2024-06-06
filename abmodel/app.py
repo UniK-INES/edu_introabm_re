@@ -139,7 +139,7 @@ def fire_evacuation_portrayal(agent):
 page = JupyterViz(
     FireEvacuation,
     model_params,
-    measures=["AvgNervousness"],
+    measures=["AvgNervousness", "TurnCount"],
     name="Evacuation Model",
     agent_portrayal=agent_portrayal,
     space_drawer = "default",

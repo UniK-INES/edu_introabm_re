@@ -295,6 +295,7 @@ class Human(Agent):
     def turn(self):
         self.orientation = Human.Orientation(self.orientation % 4 + 1 )
         self.turned = True
+        self.model.increment_decision_count(self.model.COUNTER_TURN)
 
 
     def get_random_target(self, allow_visited=True):
@@ -643,7 +644,8 @@ class Human(Agent):
             else:        
                 # check cooperation
                 if self.cooperativeness > self.COOPERATIVENESS_THRESHOLD and self.humantohelp == None \
-                        and len(self.exits) > 0:
+                        and (len(self.exits) > 0 
+                        or self.model.COOPERATE_WO_EXIT):
                     self.cooperate()
                         
                 # If the agent believes the alarm, attempt to plan 
@@ -691,3 +693,91 @@ class Human(Agent):
             
             
 # Add the new Facilitator class here!
+
+class Facilitator(Human):
+    """
+    A facilitator agent, which is more experiences and less likely to get nervous.
+
+    Attributes:
+        ID: Unique identifier of the Agent
+        Position (x,y): Position of the agent on the Grid
+        Health: Health of the agent (between 0 and 1)
+        ...
+    """
+    
+    CROWD_RELAXATION_THRESHOLD = Human.CROWD_RELAXATION_THRESHOLD + 0.2
+    CROWD_ANXIETY_THRESHOLD = Human.CROWD_RELAXATION_THRESHOLD + 0.2
+    
+    CROWD_AXIETY_INCREASE = 0.1
+    CROWD_RELAXATION_DECREASE = 0.2
+
+
+    def __init__(self,
+            unique_id,
+            speed: int,
+            orientation: Human.Orientation.NORTH,
+            nervousness: float,
+            cooperativeness: float,
+            model,
+        ):
+        
+        """
+        Update visible tiles
+
+        Parameters
+        ----------
+        
+        unique_id: int
+            agent ID
+            
+        pos: Coordinate
+            initial agent coordinates
+            
+        speed : int
+            number of tiles to go during a simulation step
+            
+        pos: Coordinate
+            initial agent coordinates
+            
+        speed : int
+            number of tiles to go during a simulation step
+            
+        orientation: Orientation
+            initial orientation of the agent (NORTH, EAST, SOUTH, WEST)
+            
+        nervousness: float
+            value 0...1
+            
+        cooperativeness: float
+            value 0...1
+            
+        believes_alarm: bool
+        
+        model: Model
+            model
+
+        Returns
+        -------
+        None.
+
+        """
+        
+        super().__init__(
+            unique_id = unique_id,
+            speed = speed,
+            orientation = orientation,
+            nervousness = nervousness,
+            cooperativeness = cooperativeness,
+            believes_alarm = True,
+            model = model,
+        )
+
+    def update_nervousness(self):
+        crowdlevel = self.getCrowdLevel()
+        if crowdlevel > Facilitator.CROWD_ANXIETY_THRESHOLD:
+            self.nervousness += Facilitator.CROWD_AXIETY_INCREASE
+        elif crowdlevel < Facilitator.CROWD_RELAXATION_THRESHOLD:
+            self.nervousness -= Facilitator.CROWD_RELAXATION_DECREASE
+        self.nervousness = min(max(0.0, self.nervousness), 1.0)
+        
+        
