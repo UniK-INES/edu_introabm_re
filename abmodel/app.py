@@ -1,6 +1,6 @@
 from mesa.visualization import JupyterViz
 from fire_evacuation.model import FireEvacuation
-from fire_evacuation.agent import Human, FireExit, Wall, Sight
+from fire_evacuation.agent import Human, Facilitator, FireExit, Wall, Sight
 import os
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -10,6 +10,16 @@ model_params = {
     # "seed":  mesa.visualization.Number
     #      name="Random seed", value=1
     # ),
+    "predictcrowd": {
+        "type": "Checkbox",
+        "value": False,
+        "label": "Crowd prediction when turning",
+    },
+    "random_spawn": {
+        "type": "Checkbox",
+        "value": True,
+        "label": "Random spawn of initial positions",
+    },
     "floor_size": {
         "type": "SliderInt",
         "value": 12,
@@ -65,7 +75,8 @@ model_params = {
 def agent_portrayal(agent):
     size = 1
     nervousness = None
-    
+    if type(agent) is Facilitator:
+        shape = os.path.join(current_dir, "fire_evacuation/resources/facilitator.png")
     if type(agent) is Human:
         nervousness = agent.nervousness
         if agent.nervousness > Human.NERVOUSNESS_PANIC_THRESHOLD:
@@ -139,7 +150,7 @@ def fire_evacuation_portrayal(agent):
 page = JupyterViz(
     FireEvacuation,
     model_params,
-    measures=["AvgNervousness", "TurnCount"],
+    measures=["AvgNervousness"],
     name="Evacuation Model",
     agent_portrayal=agent_portrayal,
     space_drawer = "default",
