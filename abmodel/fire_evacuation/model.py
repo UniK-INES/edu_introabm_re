@@ -10,9 +10,8 @@ import random
 
 from mesa import Model
 from mesa.datacollection import DataCollector
-from mesa.space import Coordinate, MultiGrid
+from mesa.space import Coordinate, MultiGrid, NetworkGrid
 from mesa.time import RandomActivation
-from .net import NetworkGrid
 
 from fire_evacuation.agent import Human, Facilitator, Wall, FireExit
 
@@ -49,6 +48,9 @@ class FireEvacuation(Model):
         interact_moore = None,
         interact_swnetwork = None,
         select_initiator = False,
+        seed_placement = 0,
+        seed_orientation = 0,
+        seed_propagate = 0,
         seed = 1,
         facilitators_percentage = 10
      ):
@@ -60,9 +62,9 @@ class FireEvacuation(Model):
         floor_size : int
             size of the room excluding walls.
         human_count : int
-            DESCRIPTION.
+            Number of humans initially in the room
         visualise_vision : bool
-            DESCRIPTION.
+            visualise vision of agents
         random_spawn : bool
             If true, agents are distributed randomy in the room
         alarm_believers_prop: float
@@ -110,8 +112,10 @@ class FireEvacuation(Model):
         if human_count > floor_size ** 2:
             raise ValueError("Number of humans to high for the room!")
  
+        self.rng_placement = np.random.default_rng(seed_placement)
+        self.rng_orientation = np.random.default_rng(seed_orientation)
+        self.rng_propagate = np.random.default_rng(seed_propagate)
         
-        # Not necessary?!
         random.seed(seed) # necessary because networkx may use it
         np.random.seed(seed)
         self.rng = np.random.default_rng(seed)
@@ -258,9 +262,9 @@ class FireEvacuation(Model):
         ##################################
         for i in range(0, self.human_count):
             if self.random_spawn:  # Place human humans randomly
-                pos = tuple(self.rng.choice(tuple(self.grid.empties)))
+                pos = tuple(self.rng_placement.choice(tuple(self.grid.empties)))
             else:  # Place human humans at specified spawn locations
-                pos = self.rng.choice(self.spawn_pos_list)
+                pos = self.rng_placement.choice(self.spawn_pos_list)
                 self.spawn_pos_list.remove(tuple(pos))
                 pos = tuple(pos)
 
@@ -279,12 +283,14 @@ class FireEvacuation(Model):
                 else:
                     believes_alarm = False
                     
-                orientation = Human.Orientation(self.rng.integers(1,5))
+                orientation = Human.Orientation(self.rng_orientation.integers(1,5))
                 
                 if (not self.agentmemory is None) and (i in self.agentmemory['agent'].values):
                     memory = self.agentmemory[self.agentmemory['agent']==i]
                 else:
                     memory = None
+                    
+                dnoisefactor = self.rng.normal(loc = distancenoisefactor, scale = 0.2)
                     
                 # decide here whether to add a facilitator
                 if (i < math.floor(human_count*(facilitators_percentage/100.0))):
@@ -335,7 +341,7 @@ class FireEvacuation(Model):
                 _ , node = next(nodes)
                 self.net.place_agent(agent, node)
             else:
-                print("No tile empty for human placement!")
+                logger.warn("No tile empty for human placement!")
 
         # select random agent to propagate alarm
         if not interactionmatrix is None:
@@ -370,10 +376,9 @@ class FireEvacuation(Model):
             for agent in self.schedule.agents:
                 if isinstance(agent, Human):
                     data = pd.DataFrame({'rep': self.modelrun + 1,
-                                                      'agent':agent.unique_id,
-                                                      'cooperativeness' : agent.cooperativeness,
-                                                      #'numsteps2escape': self.schedule.steps},index = [0])
-                                                      'numsteps2escape': agent.numsteps2escape},index = [0])
+                                          'agent':agent.unique_id,
+                                          'cooperativeness' : agent.cooperativeness,
+                                          'numsteps2escape': agent.numsteps2escape},index = [0])
                     if not self.agentmemory is None:
                         self.agentmemory = pd.concat([self.agentmemory, data])
                     else:

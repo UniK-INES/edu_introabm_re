@@ -11,7 +11,7 @@ logger = logging.getLogger("FireEvacuation")
 
 def get_line(start, end):
     """
-    Implementaiton of Bresenham's Line Algorithm
+    Implementation of Bresenham's Line Algorithm
     Returns a list of tuple coordinates from starting tuple to end tuple (and including them)
     """
     # Break down start and end tuples
@@ -180,9 +180,10 @@ class Human(Agent):
             memory: dict,
             memorysize: int,
             believes_alarm: bool,
-            turnwhenblocked_prop: float,
             model,
+            turnwhenblocked_prop: float,
             switches: dict,
+            distancenoisefactor = 1.0,
             maxsight = math.inf,
             interactionmatrix = None,
         ):
@@ -254,6 +255,7 @@ class Human(Agent):
         self.believes_alarm = believes_alarm
         self.turned = False  
         self.switches = switches
+        self.distancenoisefactor = distancenoisefactor
         self.escaped: bool = False
         self.numsteps2escape = -1
         
@@ -432,7 +434,8 @@ class Human(Agent):
                     # Let's use Bresenham's to find the 'closest' exit
                     if 'DISTANCE_NOISE' in self.switches and self.switches['DISTANCE_NOISE']:
                         # implement noise to the distance perception
-                        length = len(get_line(self.pos, exitdoor.pos))
+                        length = len(get_line(self.pos, exitdoor.pos)) * self.distancenoisefactor \
+                            * self.model.rng.normal(loc=1.0, scale=1.5) 
                     else:
                         length = len(get_line(self.pos, exitdoor.pos))
                     if not best_distance or length < best_distance:
@@ -718,19 +721,19 @@ class Human(Agent):
             if not self.interactionmatrix["moore"] is None and self.interactionmatrix["moore"] > 0:
                 for other in self.model.grid.get_neighbors(self.pos, moore=True, radius=1):
                     if isinstance(other, Human):
-                        if self.model.rng.random() < self.interactionmatrix["moore"]:
+                        if self.model.rng_propagate.random() < self.interactionmatrix["moore"]:
                             other.believes_alarm = True
             
             if not self.interactionmatrix["neumann"] is None and self.interactionmatrix["neumann"] > 0:
                 for other in self.model.grid.get_neighbors(self.pos, moore=False, radius=1):
                     if isinstance(other, Human):
-                        if self.model.rng.random() < self.interactionmatrix["neumann"]:
+                        if self.model.rng_propagate.random() < self.interactionmatrix["neumann"]:
                             other.believes_alarm = True
         
             if not self.interactionmatrix["swnetwork"] is None and self.interactionmatrix["swnetwork"] > 0:
-                for other in self.model.net.iter_cell_list_contents(self.model.net.get_neighbors(self.unique_id)):
+                for other in self.model.net.get_neighbors(self):
                     if isinstance(other, Human):
-                        if self.model.rng.random() < self.interactionmatrix["swnetwork"]:
+                        if self.model.rng_propagate.random() < self.interactionmatrix["swnetwork"]:
                             other.believes_alarm = True
         
     def step(self):
@@ -759,7 +762,7 @@ class Human(Agent):
             
             # believe in alarm with prob = 0.1
             if not self.believes_alarm:
-                if 0.02 > self.model.rng.random():
+                if 0.002 > self.model.rng.random():
                     self.believes_alarm = True
             else:
                 self.propagate()
@@ -870,6 +873,7 @@ class Facilitator(Human):
             model,
             switches,
             believes_alarm: bool,
+            distancenoisefactor = 1.0,
             maxsight = math.inf,
             interactionmatrix = None,
         ):
@@ -927,6 +931,7 @@ class Facilitator(Human):
             turnwhenblocked_prop = turnwhenblocked_prop,
             model = model,
             switches = switches,
+            distancenoisefactor = distancenoisefactor,
             maxsight = maxsight,
             interactionmatrix = interactionmatrix,
         )

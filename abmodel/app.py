@@ -10,6 +10,11 @@ model_params = {
     # "seed":  mesa.visualization.Number
     #      name="Random seed", value=1
     # ),
+    "select_initiator": {
+        "type": "Checkbox",
+        "value": True,
+        "label": "Select_initiator",
+    },
     "predictcrowd": {
         "type": "Checkbox",
         "value": False,
@@ -52,6 +57,14 @@ model_params = {
         "max": 1.0,
         "step": 0.05,
     },
+    "interact_swnetwork": {
+        "type": "SliderFloat",
+        "value": 0.05,
+        "label": "Propagation probability in network",
+        "min": 0.0,
+        "max": 1.0,
+        "step": 0.05,
+        },
     "cooperation_mean": {
         "type": "SliderFloat",
         "value": 0.3,
@@ -94,7 +107,36 @@ def agent_portrayal(agent):
         
     return {"size": size,
             "shape": shape,
-            "Nervousness": nervousness}
+            "Nervousness": nervousness,
+            }
+    
+def node_portrayal(graph):
+    def get_agent(node):
+        return graph.nodes[node]["agent"][0]
+
+    edge_width = []
+    edge_color = []
+    for u, v in graph.edges():
+        agent1 = get_agent(u)
+        agent2 = get_agent(v)
+        w = 2
+        ec = "#e8e8e8"
+        if True in (agent1.believes_alarm, agent2.believes_alarm):
+            w = 3
+            ec = "black"
+        edge_width.append(w)
+        edge_color.append(ec)
+    node_color_dict = {
+        False: "tab:red",
+        True: "tab:green",
+    }
+    node_color = [node_color_dict[get_agent(node).believes_alarm] for node in graph.nodes()]
+    return {
+        "width": edge_width,
+        "edge_color": edge_color,
+        "node_color": node_color,
+    }
+    
 
 # Creates a visual portrayal of our model in the browser interface
 def fire_evacuation_portrayal(agent):
@@ -120,6 +162,9 @@ def fire_evacuation_portrayal(agent):
         portrayal["Speed"] = int(agent.speed)
         portrayal["ID"]= str(agent.unique_id),
         portrayal["text_color"]= "red",
+        portrayal["width"]: edge_width,
+        portrayal["edge_color"]: edge_color,
+        portrayal["node_color"]: node_color,
         if agent.nervousness > Human.NERVOUSNESS_PANIC_THRESHOLD:
             # Panicked
             portrayal["Shape"] = "fire_evacuation/resources/panicked_human.png"
@@ -153,6 +198,7 @@ page = JupyterViz(
     measures=["AvgNervousness"],
     name="Evacuation Model",
     agent_portrayal=agent_portrayal,
+    graph_portrayal = node_portrayal,
     space_drawer = "default",
 )
 
