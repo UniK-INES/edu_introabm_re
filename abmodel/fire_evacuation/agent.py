@@ -5,7 +5,7 @@ from mesa import Agent
 import math
 import logging
 
-from fire_evacuation.utils import get_random_id
+from .utils import get_random_id
 
 logger = logging.getLogger("FireEvacuation")
 
@@ -148,7 +148,7 @@ class Human(Agent):
     CROWD_RELAXATION_THRESHOLD = 0.6
     CROWD_ANXIETY_THRESHOLD = 0.8
     
-    CROWD_AXIETY_INCREASE = 0.2
+    CROWD_ANXIETY_INCREASE = 0.2
     CROWD_RELAXATION_DECREASE = 0.1
     
     NERVOUSNESS_SPEEDCHANGE = 1
@@ -182,7 +182,7 @@ class Human(Agent):
             believes_alarm: bool,
             model,
             turnwhenblocked_prop: float,
-            switches: dict,
+            switches: dict = {},
             distancenoisefactor = 1.0,
             maxsight = math.inf,
             interactionmatrix = None,
@@ -608,7 +608,7 @@ class Human(Agent):
     def update_nervousness(self):
         crowdlevel = self.getCrowdLevel()
         if crowdlevel > Human.CROWD_ANXIETY_THRESHOLD:
-            self.nervousness += Human.CROWD_AXIETY_INCREASE
+            self.nervousness += Human.CROWD_ANXIETY_INCREASE
         elif crowdlevel < Human.CROWD_RELAXATION_THRESHOLD:
             self.nervousness -= Human.CROWD_RELAXATION_DECREASE
         self.nervousness = min(max(0.0, self.nervousness), 1.0) 
@@ -760,7 +760,7 @@ class Human(Agent):
             if self.speed == 0 and self.model.rng.random() < Human.SPEED_RECOVERY_PROBABILTY:
                 self.speed = 1
             
-            # believe in alarm with prob = 0.1
+            # believe in alarm with prob = 0.002
             if not self.believes_alarm:
                 if 0.002 > self.model.rng.random():
                     self.believes_alarm = True
@@ -854,10 +854,10 @@ class Facilitator(Human):
         ...
     """
     
-    CROWD_RELAXATION_THRESHOLD = Human.CROWD_RELAXATION_THRESHOLD + 0.2
+    CROWD_RELAXATION_THRESHOLD = Human.CROWD_RELAXATION_THRESHOLD + 0.1
     CROWD_ANXIETY_THRESHOLD = Human.CROWD_RELAXATION_THRESHOLD + 0.2
     
-    CROWD_AXIETY_INCREASE = 0.1
+    CROWD_ANXIETY_INCREASE = 0.1
     CROWD_RELAXATION_DECREASE = 0.2
 
 
@@ -871,8 +871,8 @@ class Facilitator(Human):
             memorysize,
             turnwhenblocked_prop,
             model,
-            switches,
-            believes_alarm: bool,
+            switches = {},
+            believes_alarm: bool = True,
             distancenoisefactor = 1.0,
             maxsight = math.inf,
             interactionmatrix = None,
@@ -939,7 +939,7 @@ class Facilitator(Human):
     def update_nervousness(self):
         crowdlevel = self.getCrowdLevel()
         if crowdlevel > Facilitator.CROWD_ANXIETY_THRESHOLD:
-            self.nervousness += Facilitator.CROWD_AXIETY_INCREASE
+            self.nervousness += Facilitator.CROWD_ANXIETY_INCREASE
         elif crowdlevel < Facilitator.CROWD_RELAXATION_THRESHOLD:
             self.nervousness -= Facilitator.CROWD_RELAXATION_DECREASE
         self.nervousness = min(max(0.0, self.nervousness), 1.0)

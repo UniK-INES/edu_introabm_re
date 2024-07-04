@@ -13,7 +13,7 @@ from mesa.datacollection import DataCollector
 from mesa.space import Coordinate, MultiGrid, NetworkGrid
 from mesa.time import RandomActivation
 
-from fire_evacuation.agent import Human, Facilitator, Wall, FireExit
+from .agent import Human, Facilitator, Wall, FireExit
 
 logger = logging.getLogger("FireEvacuation")
 
@@ -48,9 +48,9 @@ class FireEvacuation(Model):
         interact_moore = None,
         interact_swnetwork = None,
         select_initiator = False,
-        seed_placement = 0,
-        seed_orientation = 0,
-        seed_propagate = 0,
+        seed_placement = None,
+        seed_orientation = None,
+        seed_propagate = None,
         seed = 1,
         facilitators_percentage = 10
      ):
@@ -112,6 +112,13 @@ class FireEvacuation(Model):
         if human_count > floor_size ** 2:
             raise ValueError("Number of humans to high for the room!")
  
+        if seed_placement == None:
+            seed_placement = seed
+        if seed_orientation == None:
+            seed_orientation = seed
+        if seed_propagate == None:
+            seed_propagate = seed
+            
         self.rng_placement = np.random.default_rng(seed_placement)
         self.rng_orientation = np.random.default_rng(seed_orientation)
         self.rng_propagate = np.random.default_rng(seed_propagate)
@@ -306,6 +313,7 @@ class FireEvacuation(Model):
                         cooperativeness = cooperativeness,
                         believes_alarm = believes_alarm,
                         switches = self.switches,
+                        distancenoisefactor = dnoisefactor,
                         model=self,
                         memory = memory,
                         memorysize = agentmemorysize,
@@ -327,6 +335,7 @@ class FireEvacuation(Model):
                         believes_alarm=believes_alarm,
                         turnwhenblocked_prop = turnwhenblocked_prop,
                         switches = self.switches,
+                        distancenoisefactor = dnoisefactor,
                         model=self,
                         memory = memory,
                         memorysize = agentmemorysize,
@@ -346,8 +355,13 @@ class FireEvacuation(Model):
         # select random agent to propagate alarm
         if not interactionmatrix is None:
             if select_initiator:
-                # implement initiator selection here
-                initiator = self.rng.choice(self.schedule.agents)
+                cc = nx.closeness_centrality(self.G)
+                df = pd.DataFrame.from_dict({
+                    'node': list(cc.keys()),
+                    'centrality': list(cc.values())
+                })
+                sorted_df = df.sort_values('centrality', ascending=False)
+                initiator = self.G.nodes[sorted_df['node'].iloc[0]]['agent'][0]
             else:
                 initiator = self.rng.choice(self.schedule.agents)
                 
